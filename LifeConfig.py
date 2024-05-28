@@ -1,4 +1,5 @@
-from LifeCell import LifeCell
+from collections import deque
+from lifecell import LifeCell
 BLUE = (173, 216, 230)
 RED = (255, 0, 0)
 
@@ -61,14 +62,14 @@ class LifeConfig:
             width = 46
             height = 46
             distance = width + 2
-            rectangles = []
-            line = []
+            rectangles = deque()
+            line = deque()
             for rect_num in range(int(rectangle_amount)):
                 left = 1
                 if rect_num % 10 == 0 and rect_num != 0:
                     top = top + distance
                     rectangles.append(line)
-                    line = []
+                    line = deque()
                 left = left + (rect_num%10)*distance
                 x_center = left + (width/2)
                 y_center = top + (height/2)
@@ -80,14 +81,14 @@ class LifeConfig:
             width = 8
             height = 8
             distance = width + 2
-            rectangles = []
-            line = []
+            rectangles = deque()
+            line = deque()
             for rect_num in range(int(rectangle_amount)):
                 left = 1
                 if rect_num % 100 == 0 and rect_num != 0:
                     top = top + distance
                     rectangles.append(line)
-                    line = []
+                    line = deque()
                 left = left + (rect_num%100)*distance
                 x_center = left + (width/2)
                 y_center = top + (height/2)
