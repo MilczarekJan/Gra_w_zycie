@@ -1,7 +1,7 @@
 import sys
 import pygame
 import multiprocessing
-import time
+import copy
 from multiprocessing import Pool
 from collections import deque
 from pygame.locals import *
@@ -32,24 +32,28 @@ def order_lines(cells):
 
 def update_lines(line_before, line_actual, line_after):
     cells_in_line = int(len(line_actual))
+    line_actual_copy = copy.deepcopy(line_actual)
     for i in range(cells_in_line):
         east = (i+1)%cells_in_line
         west = ((i-1)+cells_in_line)%cells_in_line
         neighbours = [line_before[i], line_before[west], line_before[east], line_actual[west], line_actual[east], line_after[west], line_after[i], line_after[east]]
         alive_neighbours = calculate_neighbours(neighbours)
         if line_actual[i].Color == BLUE and alive_neighbours < 2:
-            line_actual[i].Color = RED
+            line_actual_copy[i].Color = RED
         elif line_actual[i].Color == BLUE and alive_neighbours > 3:
-            line_actual[i].Color = RED
+            line_actual_copy[i].Color = RED
         elif line_actual[i].Color == RED and alive_neighbours == 3:
-            line_actual[i].Color = BLUE
+            line_actual_copy[i].Color = BLUE
+        elif line_actual[i].Color == BLUE and (alive_neighbours == 3 or alive_neighbours == 2):
+            line_actual_copy[i].Color = BLUE
+    line_actual = line_actual_copy
     return line_actual
 
 def update_all_cells(cells, screen):
     lines_before, lines_actual, lines_after = order_lines(cells)
-    with Pool(processes=multiprocessing.cpu_count()) as pool1:
-        new_cells = pool1.starmap(update_lines, zip(lines_before, lines_actual, lines_after))
-    pool1.join()
+    with Pool(processes=multiprocessing.cpu_count()) as pool:
+        new_cells = pool.starmap(update_lines, zip(lines_before, lines_actual, lines_after))
+    pool.join()
     for line in new_cells:
         for rect in line:
             pygame.draw.rect(screen, rect.Color, rect.CellCords)
@@ -71,7 +75,7 @@ def change_cell(cells, mouse, screen):
 def main(mode):
     pygame.init()
     display_mode, rectangles = LifeConfig.select_mode(mode)
-    screen = pygame.display.set_mode(display_mode) #To jest zmienna której nie potrafię prawidłowo przekazać procesom.
+    screen = pygame.display.set_mode(display_mode)
     screen.fill((255, 255, 255))
     for line in rectangles:
         for rect in line:
