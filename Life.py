@@ -49,16 +49,16 @@ def update_lines(line_before, line_actual, line_after):
     line_actual = line_actual_copy
     return line_actual
 
-def update_all_cells(cells, screen):
+def update_all_cells(cells, screen, pool):
     lines_before, lines_actual, lines_after = order_lines(cells)
-    with Pool(processes=multiprocessing.cpu_count()) as pool:
-        new_cells = pool.starmap(update_lines, zip(lines_before, lines_actual, lines_after))
-    pool.join()
-    for line in new_cells:
+    new_cells = pool.starmap_async(update_lines, zip(lines_before, lines_actual, lines_after))
+    new_cells_results = new_cells.get()
+    for line in new_cells_results:
         for rect in line:
             pygame.draw.rect(screen, rect.Color, rect.CellCords)
     pygame.display.flip()
-    return deque(new_cells)
+    pygame.time.wait(500)
+    return deque(new_cells_results)
 
 def change_cell(cells, mouse, screen):
     line = LifeConfig.binarySearch(cells, 0, len(cells)-1, mouse[1], 1)
@@ -74,6 +74,7 @@ def change_cell(cells, mouse, screen):
             
 def main(mode):
     pygame.init()
+    #pygame.time.set_timer(pygame.MOUSEMOTION, 1)
     display_mode, rectangles = LifeConfig.select_mode(mode)
     screen = pygame.display.set_mode(display_mode)
     screen.fill((255, 255, 255))
@@ -84,21 +85,23 @@ def main(mode):
 
     gameOn = True
     pause = False
-    while gameOn:
-        for event in pygame.event.get():        
-            if event.type == pygame.QUIT:
-                gameOn = False
-                break
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                change_cell(rectangles, pygame.mouse.get_pos(), screen)
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-                if pause == True:
-                    pause = False
-                else:
-                    pause = True
+
+    with Pool(processes=multiprocessing.cpu_count()) as pool:
+        while gameOn:
+            for event in pygame.event.get():        
+                if event.type == pygame.QUIT:
+                    gameOn = False
+                    break
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    change_cell(rectangles, pygame.mouse.get_pos(), screen)
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+                    if pause == True:
+                        pause = False
+                    else:
+                        pause = True
             if not pause:
-                rectangles = update_all_cells(rectangles, screen)
-    pygame.quit()
+                rectangles = update_all_cells(rectangles, screen, pool)
+        pygame.quit()
 
 if __name__ == '__main__':
     main(int(sys.argv[1]))
